@@ -48,26 +48,41 @@
 **
 ****************************************************************************/
 
-// Based on http://www.geeks3d.com/20101029/shader-library-pixelation-post-processing-effect-glsl/
+// 这个着色器实现了一个像素化效果，可以将图像分割成大小可调的像素块
+// 基于 http://www.geeks3d.com/20101029/shader-library-pixelation-post-processing-effect-glsl/
 
-uniform float dividerValue;
-uniform float granularity;
-uniform float targetWidth;
-uniform float targetHeight;
+// 输入参数
+uniform float dividerValue;   // 分割线位置（用于对比效果）
+uniform float granularity;    // 像素化粒度，控制像素块大小
+uniform float targetWidth;    // 目标纹理宽度
+uniform float targetHeight;   // 目标纹理高度
 
-uniform sampler2D source;
-uniform lowp float qt_Opacity;
-varying vec2 qt_TexCoord0;
+// 纹理采样器和不透明度
+uniform sampler2D source;     // 输入纹理
+uniform lowp float qt_Opacity;// 全局不透明度
+varying vec2 qt_TexCoord0;    // 纹理坐标
 
 void main()
 {
+    // 获取当前纹理坐标
     vec2 uv = qt_TexCoord0.xy;
+    // 用于最终采样的纹理坐标
     vec2 tc = qt_TexCoord0;
+    
+    // 在分割线左侧且粒度大于0时应用像素化效果
     if (uv.x < dividerValue && granularity > 0.0) {
-        float dx = granularity / targetWidth;
-        float dy = granularity / targetHeight;
-        tc = vec2(dx*(floor(uv.x/dx) + 0.5),
-                  dy*(floor(uv.y/dy) + 0.5));
+        // 计算X和Y方向上的像素块大小
+        float dx = granularity / targetWidth;   // X方向像素块宽度
+        float dy = granularity / targetHeight;  // Y方向像素块高度
+        
+        // 计算像素化后的采样坐标
+        // floor(uv.x/dx)：将坐标离散化为块索引
+        // + 0.5：将采样点移到块的中心
+        // * dx/dy：转换回纹理坐标
+        tc = vec2(dx*(floor(uv.x/dx) + 0.5),    // X坐标像素化
+                 dy*(floor(uv.y/dy) + 0.5));     // Y坐标像素化
     }
+    
+    // 使用计算出的纹理坐标采样并输出最终颜色
     gl_FragColor = qt_Opacity * texture2D(source, tc);
 }

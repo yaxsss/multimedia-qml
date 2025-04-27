@@ -64,7 +64,9 @@ inline QDebug qtVerboseTrace() { return qtTrace(); }
 inline QNoDebug qtVerboseTrace() { return QNoDebug(); }
 #endif
 
+// 默认采样间隔时间（毫秒）
 static const int DefaultSamplingInterval = 100;
+// 默认跟踪间隔时间（毫秒）
 static const int DefaultTraceInterval = 0;
 
 class FrequencyMonitorPrivate : public QObject
@@ -73,24 +75,27 @@ class FrequencyMonitorPrivate : public QObject
 
 public:
     FrequencyMonitorPrivate(FrequencyMonitor *parent);
+    // 计算瞬时频率
     void calculateInstantaneousFrequency();
 
 private slots:
+    // 计算平均频率
     void calculateAverageFrequency();
+    // 处理停滞状态（当一段时间内没有新事件时）
     void stalled();
 
 public:
-    FrequencyMonitor *const q_ptr;
-    QString m_label;
-    bool m_active;
-    qreal m_instantaneousFrequency;
-    QElapsedTimer m_instantaneousElapsed;
-    QTimer *m_averageTimer;
-    QElapsedTimer m_averageElapsed;
-    int m_count;
-    qreal m_averageFrequency;
-    QTimer *m_traceTimer;
-    QTimer *m_stalledTimer;
+    FrequencyMonitor *const q_ptr;          // 指向公共类的指针
+    QString m_label;                        // 监视器标签
+    bool m_active;                          // 是否处于活动状态
+    qreal m_instantaneousFrequency;         // 瞬时频率
+    QElapsedTimer m_instantaneousElapsed;   // 瞬时频率计时器
+    QTimer *m_averageTimer;                 // 平均频率计算定时器
+    QElapsedTimer m_averageElapsed;         // 平均频率计时器
+    int m_count;                            // 采样周期内的事件计数
+    qreal m_averageFrequency;               // 平均频率
+    QTimer *m_traceTimer;                   // 跟踪输出定时器
+    QTimer *m_stalledTimer;                 // 停滞检测定时器
 };
 
 FrequencyMonitorPrivate::FrequencyMonitorPrivate(FrequencyMonitor *parent)
@@ -121,26 +126,35 @@ FrequencyMonitorPrivate::FrequencyMonitorPrivate(FrequencyMonitor *parent)
 
 void FrequencyMonitorPrivate::calculateInstantaneousFrequency()
 {
+    // 计算自上次事件以来经过的毫秒数
     const qint64 ms = m_instantaneousElapsed.restart();
+    // 计算瞬时频率（次/秒）
     m_instantaneousFrequency = ms ? qreal(1000) / ms : 0;
+    // 设置停滞检测定时器，超时时间为事件间隔的3倍
     m_stalledTimer->start(3 * ms);
     if (m_instantaneousFrequency)
         q_ptr->setActive(true);
+    // 发出频率变化信号
     emit q_ptr->instantaneousFrequencyChanged(m_instantaneousFrequency);
     emit q_ptr->frequencyChanged();
 }
 
 void FrequencyMonitorPrivate::calculateAverageFrequency()
 {
+    // 计算采样周期内经过的毫秒数
     const qint64 ms = m_averageElapsed.restart();
+    // 计算平均频率（次/秒）
     m_averageFrequency = qreal(m_count * 1000) / ms;
+    // 发出频率变化信号
     emit q_ptr->averageFrequencyChanged(m_averageFrequency);
     emit q_ptr->frequencyChanged();
+    // 重置计数器
     m_count = 0;
 }
 
 void FrequencyMonitorPrivate::stalled()
 {
+    // 如果当前有瞬时频率，将其设置为0并发出信号
     if (m_instantaneousFrequency) {
         m_instantaneousFrequency = 0;
         emit q_ptr->instantaneousFrequencyChanged(m_instantaneousFrequency);
@@ -192,13 +206,16 @@ qreal FrequencyMonitor::averageFrequency() const
 void FrequencyMonitor::notify()
 {
     Q_D(FrequencyMonitor);
+    // 增加事件计数
     ++(d->m_count);
+    // 计算新的瞬时频率
     d->calculateInstantaneousFrequency();
 }
 
 void FrequencyMonitor::trace()
 {
     Q_D(FrequencyMonitor);
+    // 格式化输出当前的频率信息
     const QString value = QString::fromLatin1("instant %1 average %2")
                             .arg(d->m_instantaneousFrequency, 0, 'f', 2)
                             .arg(d->m_averageFrequency, 0, 'f', 2);
@@ -231,9 +248,11 @@ void FrequencyMonitor::setSamplingInterval(int value)
     Q_D(FrequencyMonitor);
     if (samplingInterval() != value) {
         if (value) {
+            // 设置新的采样间隔并启动定时器
             d->m_averageTimer->setInterval(value);
             d->m_averageTimer->start();
         } else {
+            // 停止采样
             d->m_averageTimer->stop();
         }
         emit samplingIntervalChanged(value);
@@ -245,9 +264,11 @@ void FrequencyMonitor::setTraceInterval(int value)
     Q_D(FrequencyMonitor);
     if (traceInterval() != value) {
         if (value) {
+            // 设置新的跟踪间隔并启动定时器
             d->m_traceTimer->setInterval(value);
             d->m_traceTimer->start();
         } else {
+            // 停止跟踪
             d->m_traceTimer->stop();
         }
         emit traceIntervalChanged(value);

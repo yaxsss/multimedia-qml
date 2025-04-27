@@ -48,30 +48,52 @@
 **
 ****************************************************************************/
 
-uniform float dividerValue;
-uniform float blurSize;
+// 垂直方向的高斯模糊着色器
+// 使用9个采样点实现一维高斯模糊
+// 与水平方向的高斯模糊配合使用，实现完整的二维高斯模糊效果
 
-uniform sampler2D source;
-uniform lowp float qt_Opacity;
-varying vec2 qt_TexCoord0;
+// 输入参数
+uniform float dividerValue;   // 分割线位置（用于对比效果）
+uniform float blurSize;       // 模糊大小（采样间距）, 控制模糊范围
+
+// 纹理采样器和不透明度
+uniform sampler2D source;     // 输入纹理
+uniform lowp float qt_Opacity;// 全局不透明度（本次处理不使用）
+varying vec2 qt_TexCoord0;    // 纹理坐标
 
 void main()
 {
+    // 获取当前纹理坐标
     vec2 uv = qt_TexCoord0.xy;
+    // 初始化颜色累加器
     vec4 c = vec4(0.0);
+    
+    // 根据dividerValue分割显示原始图像和模糊效果
     if (uv.x < dividerValue) {
-        c += texture2D(source, uv - vec2(0.0, 4.0*blurSize)) * 0.05;
-        c += texture2D(source, uv - vec2(0.0, 3.0*blurSize)) * 0.09;
-        c += texture2D(source, uv - vec2(0.0, 2.0*blurSize)) * 0.12;
-        c += texture2D(source, uv - vec2(0.0, 1.0*blurSize)) * 0.15;
-        c += texture2D(source, uv) * 0.18;
-        c += texture2D(source, uv + vec2(0.0, 1.0*blurSize)) * 0.15;
-        c += texture2D(source, uv + vec2(0.0, 2.0*blurSize)) * 0.12;
-        c += texture2D(source, uv + vec2(0.0, 3.0*blurSize)) * 0.09;
-        c += texture2D(source, uv + vec2(0.0, 4.0*blurSize)) * 0.05;
+        // 应用垂直高斯模糊
+        // 使用9个采样点，权重按照高斯分布设置
+        // 权重总和为1.0，确保亮度保持不变
+        
+        // 上方4个采样点
+        c += texture2D(source, uv - vec2(0.0, 4.0*blurSize)) * 0.05;  // 权重0.05
+        c += texture2D(source, uv - vec2(0.0, 3.0*blurSize)) * 0.09;  // 权重0.09
+        c += texture2D(source, uv - vec2(0.0, 2.0*blurSize)) * 0.12;  // 权重0.12
+        c += texture2D(source, uv - vec2(0.0, 1.0*blurSize)) * 0.15;  // 权重0.15
+        
+        // 中心点
+        c += texture2D(source, uv) * 0.18;                            // 权重0.18
+        
+        // 下方4个采样点
+        c += texture2D(source, uv + vec2(0.0, 1.0*blurSize)) * 0.15;  // 权重0.15
+        c += texture2D(source, uv + vec2(0.0, 2.0*blurSize)) * 0.12;  // 权重0.12
+        c += texture2D(source, uv + vec2(0.0, 3.0*blurSize)) * 0.09;  // 权重0.09
+        c += texture2D(source, uv + vec2(0.0, 4.0*blurSize)) * 0.05;  // 权重0.05
     } else {
+        // 显示原始图像
         c = texture2D(source, qt_TexCoord0);
     }
-    // First pass we don't apply opacity
+    
+    // 第一次处理不应用不透明度
+    // 因为这是两步高斯模糊中的第一步
     gl_FragColor = c;
 }

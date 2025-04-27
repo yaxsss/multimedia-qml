@@ -48,41 +48,65 @@
 **
 ****************************************************************************/
 
-// Based on http://blog.qt.io/blog/2011/03/22/the-convenient-power-of-qml-scene-graph/
+// 这个着色器实现了一个动态波纹效果
+// 基于Qt博客文章: http://blog.qt.io/blog/2011/03/22/the-convenient-power-of-qml-scene-graph/
 
-uniform float dividerValue;
-uniform float targetWidth;
-uniform float targetHeight;
-uniform float time;
+// 基础参数
+uniform float dividerValue;    // 分割线位置，用于对比效果
+uniform float targetWidth;     // 目标纹理宽度
+uniform float targetHeight;    // 目标纹理高度
+uniform float time;           // 时间参数，用于动画
 
-uniform sampler2D source;
-uniform lowp float qt_Opacity;
-varying vec2 qt_TexCoord0;
+// 纹理和不透明度参数
+uniform sampler2D source;     // 输入纹理
+uniform lowp float qt_Opacity;// 全局不透明度
+varying vec2 qt_TexCoord0;    // 纹理坐标
 
-const float PI = 3.1415926535;
-const int ITER = 7;
-const float RATE = 0.1;
-uniform float amplitude;
-uniform float n;
-uniform float pixDens;
+// 波纹效果参数
+const float PI = 3.1415926535;// PI常量
+const int ITER = 7;           // 迭代次数，影响波纹的复杂度
+const float RATE = 0.1;       // 波纹移动速率
+uniform float amplitude;      // 波纹振幅
+uniform float n;             // 波纹频率
+uniform float pixDens;       // 像素密度，影响波纹的精细程度
 
 void main()
 {
+    // 获取纹理坐标
     vec2 uv = qt_TexCoord0.xy;
     vec2 tc = uv;
-    vec2 p = vec2(-1.0 + 2.0 * (gl_FragCoord.x - (pixDens * 14.0)) / targetWidth, -(-1.0 + 2.0 * (gl_FragCoord.y - (pixDens * 29.0)) / targetHeight));
+    
+    // 计算归一化的像素坐标，考虑像素密度的偏移
+    vec2 p = vec2(-1.0 + 2.0 * (gl_FragCoord.x - (pixDens * 14.0)) / targetWidth, 
+                  -(-1.0 + 2.0 * (gl_FragCoord.y - (pixDens * 29.0)) / targetHeight));
+    
+    // 初始化位移累加器
     float diffx = 0.0;
     float diffy = 0.0;
-    vec4 col;
+    
+    // 在分割线左侧应用波纹效果
     if (uv.x < dividerValue) {
+        // 通过多次迭代计算波纹效果
         for (int i=0; i<ITER; ++i) {
+            // 计算当前迭代的角度
             float theta = float(i) * PI / float(ITER);
-            vec2 r = vec2(cos(theta) * p.x + sin(theta) * p.y, -1.0 * sin(theta) * p.x + cos(theta) * p.y);
+            
+            // 对坐标进行旋转变换
+            vec2 r = vec2(cos(theta) * p.x + sin(theta) * p.y, 
+                         -1.0 * sin(theta) * p.x + cos(theta) * p.y);
+            
+            // 计算波纹扰动
             float diff = (sin(2.0 * PI * n * (r.y + time * RATE)) + 1.0) / 2.0;
+            
+            // 累加x和y方向的扰动
             diffx += diff * sin(theta);
             diffy += diff * cos(theta);
         }
+        
+        // 应用最终的坐标扰动
         tc = 0.5*(vec2(1.0,1.0) + p) + amplitude * vec2(diffx, diffy);
     }
+    
+    // 输出最终颜色，应用全局不透明度
     gl_FragColor = qt_Opacity * texture2D(source, tc);
 }

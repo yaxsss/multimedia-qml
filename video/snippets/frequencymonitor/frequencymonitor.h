@@ -58,7 +58,9 @@ class FrequencyMonitorPrivate;
 
 /**
  * Class for measuring frequency of events
- *
+ * 监控帧率
+ * 监控数据处理速率
+ * 监控事件触发频率
  * Occurrence of the event is notified by the client via the notify() slot.
  * On a regular interval, both an instantaneous and a rolling average
  * event frequency are calculated.
@@ -82,7 +84,7 @@ public:
 
     QString label() const;
     bool active() const;
-    int samplingInterval() const;
+    int samplingInterval() const; // 采样间隔时间
     int traceInterval() const;
     qreal instantaneousFrequency() const;
     qreal averageFrequency() const;

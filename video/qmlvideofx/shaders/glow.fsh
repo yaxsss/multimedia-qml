@@ -47,35 +47,57 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
+// 这个着色器实现了一个发光效果
+// 基于 http://kodemongki.blogspot.com/2011/06/kameraku-custom-shader-effects-example.html
 
-// Based on http://kodemongki.blogspot.com/2011/06/kameraku-custom-shader-effects-example.html
+// 输入参数
+uniform float dividerValue;   // 分割线位置（用于对比效果）
 
-uniform float dividerValue;
-const float step_w = 0.0015625;
-const float step_h = 0.0027778;
+// 采样步长（用于确定相邻像素的采样位置）
+const float step_w = 0.0015625;  // 水平方向步长
+const float step_h = 0.0027778;  // 垂直方向步长
 
-uniform sampler2D source;
-uniform lowp float qt_Opacity;
-varying vec2 qt_TexCoord0;
+// 纹理采样器和不透明度
+uniform sampler2D source;     // 输入纹理
+uniform lowp float qt_Opacity;// 全局不透明度
+varying vec2 qt_TexCoord0;    // 纹理坐标
 
 void main()
 {
+    // 获取当前纹理坐标
     vec2 uv = qt_TexCoord0.xy;
-    vec3 t1 = texture2D(source, vec2(uv.x - step_w, uv.y - step_h)).rgb;
-    vec3 t2 = texture2D(source, vec2(uv.x, uv.y - step_h)).rgb;
-    vec3 t3 = texture2D(source, vec2(uv.x + step_w, uv.y - step_h)).rgb;
-    vec3 t4 = texture2D(source, vec2(uv.x - step_w, uv.y)).rgb;
-    vec3 t5 = texture2D(source, uv).rgb;
-    vec3 t6 = texture2D(source, vec2(uv.x + step_w, uv.y)).rgb;
-    vec3 t7 = texture2D(source, vec2(uv.x - step_w, uv.y + step_h)).rgb;
-    vec3 t8 = texture2D(source, vec2(uv.x, uv.y + step_h)).rgb;
-    vec3 t9 = texture2D(source, vec2(uv.x + step_w, uv.y + step_h)).rgb;
-    vec3 xx = t1 + 2.0*t2 + t3 - t7 - 2.0*t8 - t9;
-    vec3 yy = t1 - t3 + 2.0*t4 - 2.0*t6 + t7 - t9;
+    
+    // 采样3x3网格内的9个像素点
+    // t1 t2 t3
+    // t4 t5 t6
+    // t7 t8 t9
+    vec3 t1 = texture2D(source, vec2(uv.x - step_w, uv.y - step_h)).rgb;  // 左上
+    vec3 t2 = texture2D(source, vec2(uv.x, uv.y - step_h)).rgb;           // 上
+    vec3 t3 = texture2D(source, vec2(uv.x + step_w, uv.y - step_h)).rgb;  // 右上
+    vec3 t4 = texture2D(source, vec2(uv.x - step_w, uv.y)).rgb;           // 左
+    vec3 t5 = texture2D(source, uv).rgb;                                   // 中心
+    vec3 t6 = texture2D(source, vec2(uv.x + step_w, uv.y)).rgb;           // 右
+    vec3 t7 = texture2D(source, vec2(uv.x - step_w, uv.y + step_h)).rgb;  // 左下
+    vec3 t8 = texture2D(source, vec2(uv.x, uv.y + step_h)).rgb;           // 下
+    vec3 t9 = texture2D(source, vec2(uv.x + step_w, uv.y + step_h)).rgb;  // 右下
+    
+    // 计算Sobel算子的x方向和y方向梯度
+    // x方向Sobel算子：        y方向Sobel算子：
+    // [ 1  2  1 ]            [ 1  0  -1 ]
+    // [ 0  0  0 ]            [ 2  0  -2 ]
+    // [-1 -2 -1 ]            [ 1  0  -1 ]
+    vec3 xx = t1 + 2.0*t2 + t3 - t7 - 2.0*t8 - t9;    // x方向梯度
+    vec3 yy = t1 - t3 + 2.0*t4 - 2.0*t6 + t7 - t9;    // y方向梯度
+    
+    // 计算梯度强度（边缘强度）
     vec3 rr = sqrt(xx * xx + yy * yy);
-    vec3 col = rr * 2.0 * t5;
+    
+    // 生成发光效果：将边缘强度与原始颜色结合
+    vec3 col = rr * 2.0 * t5;  // 将边缘强度放大2倍并与原始颜色相乘
+    
+    // 根据dividerValue分割显示原始图像和发光效果
     if (uv.x < dividerValue)
-        gl_FragColor = qt_Opacity * vec4(col, 1.0);
+        gl_FragColor = qt_Opacity * vec4(col, 1.0);    // 显示发光效果
     else
-        gl_FragColor = qt_Opacity * texture2D(source, uv);
+        gl_FragColor = qt_Opacity * texture2D(source, uv); // 显示原始图像
 }

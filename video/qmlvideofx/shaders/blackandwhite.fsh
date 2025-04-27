@@ -47,25 +47,38 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
+// 该着色器实现了一个简单有效的黑白效果转换
 
-// Based on http://kodemongki.blogspot.com/2011/06/kameraku-custom-shader-effects-example.html
+// 基于 http://kodemongki.blogspot.com/2011/06/kameraku-custom-shader-effects-example.html
 
-uniform float threshold;
-uniform float dividerValue;
+// 输入参数
+uniform float threshold;      // 黑白转换阈值
+uniform float dividerValue;   // 分割线位置（用于对比效果）
 
-uniform sampler2D source;
-uniform lowp float qt_Opacity;
-varying vec2 qt_TexCoord0;
+// 纹理采样器和不透明度
+uniform sampler2D source;     // 输入纹理
+uniform lowp float qt_Opacity;// 全局不透明度
+varying vec2 qt_TexCoord0;    // 纹理坐标
 
 void main()
 {
+    // 获取当前纹理坐标
     vec2 uv = qt_TexCoord0.xy;
+    
+    // 采样原始颜色
     vec4 orig = texture2D(source, uv);
     vec3 col = orig.rgb;
-    float y = 0.3 *col.r + 0.59 * col.g + 0.11 * col.b;
+    
+    // 计算亮度值：使用BT.601标准的RGB权重
+    // R: 0.3, G: 0.59, B: 0.11
+    float y = 0.3 * col.r + 0.59 * col.g + 0.11 * col.b;
+    
+    // 根据阈值将亮度二值化（纯黑或纯白）
     y = y < threshold ? 0.0 : 1.0;
+    
+    // 根据dividerValue分割显示原始图像和黑白效果
     if (uv.x < dividerValue)
-        gl_FragColor = qt_Opacity * vec4(y, y, y, 1.0);
+        gl_FragColor = qt_Opacity * vec4(y, y, y, 1.0);    // 显示黑白效果
     else
-        gl_FragColor = qt_Opacity * orig;
+        gl_FragColor = qt_Opacity * orig;                   // 显示原始图像
 }
