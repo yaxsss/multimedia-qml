@@ -48,50 +48,59 @@
 **
 ****************************************************************************/
 
+// 导入所需的Qt模块
 import QtQuick 2.0
 
+// 内容显示容器组件
 Rectangle {
     id: root
-    border.color: "white"
-    border.width: showBorder ? 1 : 0
-    color: "transparent"
-    property string contentType // "camera" or "video"
-    property string source
-    property real volume
-    property bool dummy: false
-    property bool autoStart: true
-    property bool started: false
-    property bool showFrameRate: false
-    property bool showBorder: false
+    border.color: "white"                    // 边框颜色
+    border.width: showBorder ? 1 : 0         // 边框宽度，根据showBorder决定是否显示
+    color: "transparent"                      // 背景透明
 
-    signal initialized
-    signal error
-    signal videoFramePainted
+    // 基本属性
+    property string contentType              // 内容类型："camera"或"video"
+    property string source                   // 媒体源
+    property real volume                     // 音量
+    property bool dummy: false               // 是否使用替代组件
+    property bool autoStart: true            // 是否自动开始播放
+    property bool started: false             // 是否已开始播放
+    property bool showFrameRate: false       // 是否显示帧率
+    property bool showBorder: false          // 是否显示边框
 
+    // 信号定义
+    signal initialized                       // 初始化完成信号
+    signal error                            // 错误信号
+    signal videoFramePainted                // 视频帧绘制完成信号
+
+    // 内容加载器
     Loader {
-        id: contentLoader
+        id: contentLoader                    // 用于动态加载视频或相机组件
     }
 
+    // 帧绘制信号连接
     Connections {
         id: framePaintedConnection
         function onFramePainted() {
             if (frameRateLoader.item)
-                frameRateLoader.item.notify()
-            root.videoFramePainted()
+                frameRateLoader.item.notify()    // 更新帧率显示
+            root.videoFramePainted()             // 触发帧绘制信号
         }
         ignoreUnknownSignals: true
     }
 
+    // 错误信号连接
     Connections {
         id: errorConnection
         function onFatalError() {
             console.log("[qmlvideo] Content.onFatalError")
-            root.stop()
-            root.error()
+            root.stop()                          // 停止播放
+            root.error()                         // 触发错误信号
         }
         ignoreUnknownSignals: true
     }
 
+    // 帧率显示加载器
     Loader {
         id: frameRateLoader
         source: root.showFrameRate ? "../frequencymonitor/FrequencyItem.qml" : ""
@@ -103,6 +112,7 @@ Rectangle {
         }
     }
 
+    // 尺寸变化处理
     onWidthChanged: {
         if (contentItem())
             contentItem().width = width
@@ -113,23 +123,30 @@ Rectangle {
             contentItem().height = height
     }
 
+    // 初始化函数
     function initialize() {
         if ("video" == contentType) {
+            // 加载视频组件
             contentLoader.source = "VideoItem.qml"
             if (Loader.Error == contentLoader.status) {
+                // 如果加载失败，使用替代组件
                 contentLoader.source = "VideoDummy.qml"
                 dummy = true
             }
             contentLoader.item.volume = volume
         } else if ("camera" == contentType) {
+            // 加载相机组件
             contentLoader.source = "CameraItem.qml"
             if (Loader.Error == contentLoader.status) {
+                // 如果加载失败，使用替代组件
                 contentLoader.source = "CameraDummy.qml"
                 dummy = true
             }
         } else {
             console.log("[qmlvideo] Content.initialize: error: invalid contentType")
         }
+
+        // 设置组件属性和连接信号
         if (contentLoader.item) {
             contentLoader.item.sizeChanged.connect(updateRootSize)
             contentLoader.item.parent = root
@@ -142,6 +159,7 @@ Rectangle {
         root.initialized()
     }
 
+    // 开始播放
     function start() {
         if (contentLoader.item) {
             if (root.contentType == "video")
@@ -151,6 +169,7 @@ Rectangle {
         }
     }
 
+    // 停止播放
     function stop() {
         if (contentLoader.item) {
             contentLoader.item.stop()
@@ -160,6 +179,7 @@ Rectangle {
         }
     }
 
-    function contentItem() { return contentLoader.item }
-    function updateRootSize() { root.height = contentItem().height }
+    // 工具函数
+    function contentItem() { return contentLoader.item }           // 获取当前内容项
+    function updateRootSize() { root.height = contentItem().height }  // 更新根组件尺寸
 }

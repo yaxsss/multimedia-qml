@@ -48,36 +48,46 @@
 **
 ****************************************************************************/
 
+// 导入所需的Qt模块
 import QtQuick 2.0
 
+// 场景基础组件，作为视频/相机内容的容器
 Rectangle {
     id: root
-    color: "black"
-    property alias buttonHeight: closeButton.height
-    property string source1
-    property string source2
-    property int contentWidth: parent.width
-    property real volume: 0.25
-    property int margins: 5
-    property QtObject content
+    color: "black"                           // 背景色为黑色
 
-    signal close
-    signal videoFramePainted
+    // 属性定义
+    property alias buttonHeight: closeButton.height  // 关闭按钮高度
+    property string source1                         // 主媒体源
+    property string source2                         // 备用媒体源
+    property int contentWidth: parent.width         // 内容宽度，默认继承父组件宽度
+    property real volume: 0.25                      // 音量，默认为25%
+    property int margins: 5                         // 边距
+    property QtObject content                       // 内容对象引用
 
+    // 信号定义
+    signal close                                    // 关闭信号
+    signal videoFramePainted                        // 视频帧绘制完成信号
+
+    // 返回按钮
     Button {
         id: closeButton
         anchors {
-            top: parent.top
-            right: parent.right
-            margins: root.margins
+            top: parent.top                         // 固定在顶部
+            right: parent.right                     // 固定在右侧
+            margins: root.margins                   // 应用边距
         }
-        width: Math.max(parent.width, parent.height) / 12
-        height: Math.min(parent.width, parent.height) / 12
-        z: 2.0
-        bgColor: "#212121"
-        bgColorSelected: "#757575"
-        textColorSelected: "white"
-        text: "Back"
-        onClicked: root.close()
+        // 按钮尺寸计算：根据父组件尺寸动态调整
+        width: Math.max(parent.width, parent.height) / 12   // 宽度为父组件最大边长的1/12
+        height: Math.min(parent.width, parent.height) / 12  // 高度为父组件最小边长的1/12
+        z: 2.0                                     // 置于上层
+        
+        // 按钮样式
+        bgColor: "#212121"                         // 正常状态背景色
+        bgColorSelected: "#757575"                 // 选中状态背景色
+        textColorSelected: "white"                 // 选中状态文字颜色
+        text: "Back"                               // 按钮文字
+        
+        onClicked: root.close()                    // 点击时触发场景关闭信号
     }
 }

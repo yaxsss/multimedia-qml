@@ -48,31 +48,38 @@
 **
 ****************************************************************************/
 
+// 导入所需的Qt模块
 import QtQuick 2.0
 import QtMultimedia 5.0
 
+// VideoOutput组件用于显示视频内容
 VideoOutput {
     id: root
-    height: width
-    source: mediaPlayer
+    height: width  // 保持视频输出区域为正方形
+    source: mediaPlayer  // 视频源为mediaPlayer
 
-    property alias duration: mediaPlayer.duration
-    property alias mediaSource: mediaPlayer.source
-    property alias metaData: mediaPlayer.metaData
-    property alias playbackRate: mediaPlayer.playbackRate
-    property alias position: mediaPlayer.position
-    property alias volume: mediaPlayer.volume
+    // 属性别名，将MediaPlayer的属性暴露给外部
+    property alias duration: mediaPlayer.duration          // 视频总时长
+    property alias mediaSource: mediaPlayer.source        // 视频源地址
+    property alias metaData: mediaPlayer.metaData         // 视频元数据
+    property alias playbackRate: mediaPlayer.playbackRate // 播放速率
+    property alias position: mediaPlayer.position         // 当前播放位置
+    property alias volume: mediaPlayer.volume             // 音量大小
 
-    signal sizeChanged
-    signal fatalError
+    // 自定义信号
+    signal sizeChanged  // 尺寸改变信号
+    signal fatalError   // 致命错误信号
 
+    // 当高度改变时触发sizeChanged信号
     onHeightChanged: root.sizeChanged()
 
+    // 媒体播放器组件
     MediaPlayer {
         id: mediaPlayer
-        autoLoad: false
-        loops: Audio.Infinite
+        autoLoad: false           // 禁用自动加载
+        loops: Audio.Infinite     // 无限循环播放
 
+        // 错误处理
         onError: {
             if (MediaPlayer.NoError != error) {
                 console.log("[qmlvideo] VideoItem.onError error " + error + " errorString " + errorString)
@@ -81,7 +88,8 @@ VideoOutput {
         }
     }
 
-    function start() { mediaPlayer.play() }
-    function stop() { mediaPlayer.stop() }
-    function seek(position) { mediaPlayer.seek(position); }
+    // 公共方法
+    function start() { mediaPlayer.play() }    // 开始播放
+    function stop() { mediaPlayer.stop() }     // 停止播放
+    function seek(position) { mediaPlayer.seek(position); }  // 跳转到指定位置
 }
